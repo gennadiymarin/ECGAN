@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
 from PIL import Image
 import torchvision.transforms.functional as F
 
