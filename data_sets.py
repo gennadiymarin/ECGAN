@@ -14,9 +14,13 @@ class CityScapesDataSet(Dataset):
         return self.length
 
     def __getitem__(self, item: int):
-        img = F.pil_to_tensor(Image.open(self.path + str(item + 1) +'.jpg'))
-        return img[:,:,:256], img[:,:,256:]
+        img = F.pil_to_tensor(Image.open(self.path + str(item + 1) + '.jpg'))
+        return img[:, :, :256], img[:, :, 256:]
 
+
+def get_dataset_labels(name):
+    if name == 'cityscapes':
+        ...  # TODO
 
 # train_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data')
 # val_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data', train=False)

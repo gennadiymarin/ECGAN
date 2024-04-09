@@ -1,71 +1,89 @@
 from tqdm import tqdm
 import torch
 import torchvision.transforms.functional as F
-from loss import pixel_contrastive_loss
+from loss import GANLossFactory
+from networks import ECGAN
+from data_sets import CityScapesDataSet
+from torch.utils.data import DataLoader
+from config import TrainingConfig
 
 
-def train_epoch(model, optimizers, train_loader, device):
-    loss_log = []
-    acc_log = []
-    model.train()
+class Trainer:
+    def __init__(self, config):
+        self.config = config
 
-    for img, img_seg in tqdm(train_loader, desc='Training'):
-        s = RGB2n(img_seg, labels)  # TODO
+        self.device = self.config.device
+        self.model = ECGAN(self.config).to(self.device)
+        self.optimizers = {
+            'G': torch.optim.Adam(self.model.generator.parameters(), lr=self.config.lr,
+                                  betas=(self.config.beta1., self.config.beta2)),
+            'D': torch.optim.Adam(self.model.discriminator.parameters(), lr=self.config.lr,
+                                  betas=(self.config.beta1, self.config.beta2)),
+        }
 
-        img = img.to(device)
-        img_seg = img_seg.to(device)
+        dataset = CityScapesDataSet(self.config.data_path, train=True)
+        self.loader = DataLoader(dataset, batch_size=self.config.batch_size,
+                                 shuffle=True, num_workers=0)
 
-        # train D
-        optimizers['D'].zero_grad()
+        self.losses = GANLossFactory(self.config)
+        self.labels = get_dataset_labels(self.config.dataset)  # TODO
+        self.epoch = 0
 
-        img_edge = model.canny(img)
-        f, out_edge, out_img1, out_img2, pred_labels = model(s, img)
+    def train_epoch(self):
+        for img, img_seg in tqdm(self.loader, desc='Training'):
+            img = img.to(self.device)
+            img_seg = img_seg.to(self.device)
 
-        edge_real = model.discriminator(img_edge, s)
-        edge_fake = model.discriminator(out_edge, s)
-        img_real = model.discriminator(img, s)
-        img_fake1 = model.discriminator(out_img1, s)
-        img_fake2 = model.discriminator(out_img2, s)
+            s = RGB2n(img_seg, self.labels)  # TODO заимпортить это
 
-        edge_real_loss = F.binary_cross_entropy_with_logits(edge_real, torch.ones_like(edge_real))
-        edge_fake_loss = F.binary_cross_entropy_with_logits(out_edge.detach(), torch.zeros_like(edge_fake))
+            loss_D = self.update_D(img, s)
+            loss_G = self.update_G(img, img_seg, s)
 
-        img_real_loss = F.binary_cross_entropy_with_logits(img, torch.ones_like(img_real))
-        img_fake_loss1 = F.binary_cross_entropy_with_logits(out_img1.detach(), torch.zeros_like(img_fake1))
-        img_fake_loss2 = F.binary_cross_entropy_with_logits(out_img2.detach(), torch.zeros_like(img_fake2))
+    def update_D(self, img, s):
+        self.optimizers['D'].zero_grad()
 
-        loss = edge_real_loss + edge_fake_loss + img_real_loss + img_fake_loss1 + img_fake_loss2 + ...
-        loss.backward()
+        img_edge = self.model.canny(img)
+        f, out_edge, out_img1, out_img2, pred_labels = self.model(s, img)
 
-        optimizers['D'].step()
+        edge_real_logits = self.model.discriminator(img_edge, s)
+        edge_fake_logits = self.model.discriminator(out_edge, s)
+        img_real_logits = self.model.discriminator(img, s)
+        img_fake1_logits = self.model.discriminator(out_img1, s)
+        img_fake2_logits = self.model.discriminator(out_img2, s)
 
-        # train G
-        optimizers['G'].zero_grad()
-        f, out_edge, out_img1, out_img2, labels = model(s, img)
-
-        edge_fake = model.discriminator(out_edge, s)
-
-        img_fake1 = model.discriminator(out_img1, s)
-        img_fake2 = model.discriminator(out_img2, s)
-
-        edge_fake_loss = F.binary_cross_entropy_with_logits(out_fake, torch.ones_like(edge_fake))
-        img_fake_loss1 = F.binary_cross_entropy_with_logits(out_img1, torch.ones_like(img_fake1))
-        img_fake_loss2 = F.binary_cross_entropy_with_logits(out_img2, torch.ones_like(img_fake2))
-
-        mma_loss = edge_real_loss + edge_fake_loss + img_real_loss + img_fake_loss1 + img_fake_loss2
-        sim_loss = similarity_loss()  # TODO
-        contrastive_loss = pixel_contrastive_loss(img_seg, f, labels)
-
-        loss = mma_loss + sim_loss + contrastive_loss + ...
+        loss = self.losses['mma_D'](edge_real_logits, img_real_logits, edge_fake_logits, img_fake1_logits,
+                                    img_fake2_logits)
 
         loss.backward()
 
-        optimizers['G'].step()
+        self.optimizers['D'].step()
 
-    return ...  # TODO
+    def update_G(self, img, img_seg, s):
+        self.optimizers['G'].zero_grad()
+        f, out_edge, out_img1, out_img2, pred_labels = self.model(s, img)
 
+        img_edge = self.model.canny(img)
 
-def train(model, optimizers, n_epochs, train_loader, device='cuda'):
-    for epoch in range(epoch_bias + 1, n_epochs + epoch_bias + 1):
-        ... = train_epoch(model, optimizers, train_loader, device) #TODO
-    return ...
+        edge_fake_logits = self.model.discriminator(out_edge, s)
+        img_fake1_logits = self.model.discriminator(out_img1, s)
+        img_fake2_logits = self.model.discriminator(out_img2, s)
+
+        loss = self.losses['mma_G'](edge_fake_logits, img_fake1_logits, img_fake2_logits) \
+               + self.losses['pix_contr'](img_seg, f, self.labels) \
+               + self.losses['L1'](img, out_img1) \
+               + self.losses['sim'](img, out_img2) \
+               + self.losses['perc'](img_edge, out_edge) \
+               + self.losses['perc'](img, out_img1) \
+               + self.losses['perc'](img, out_img2) \
+               + self.losses['discr_f'](img_edge, out_edge) \
+               + self.losses['discr_f'](img, out_img1) \
+               + self.losses['discr_f'](img, out_img2)
+
+        loss.backward()
+
+        self.optimizers['G'].step()
+
+    def train(self):
+        self.model.train()
+        for self.epoch in range(1, self.config.n_epochs + 1):
+            self.train_epoch()

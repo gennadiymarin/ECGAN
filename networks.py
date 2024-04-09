@@ -102,7 +102,7 @@ class Generator(nn.Module):
             out_img += self.sigmoid(out_edge) * out_img
 
         out_edge = self.edge_final(out_edge)
-        # out_edge = self.canny(out_edge) #TODO
+        out_edge = self.canny(out_edge) #TODO
 
         out_img = self.img_final(out_img)
         out_img += self.sigmoid(out_edge) * out_img
@@ -111,13 +111,14 @@ class Generator(nn.Module):
 
 
 class ECGAN(nn.Module):
-    def __init__(self, config):
-        self.generator = Generator(config.channels_in,config.channels_hidden, config.channels_out)
-        self.discriminator = ...
-        self.semantic_preserving_module = ...
-        self.label_generator = ...
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.generator = Generator(config.labels_cnt, config.c_hidden, 3)
+        self.discriminator = Discrimintator(config.labels_cnt)
+        self.semantic_preserving_module = SemanticPresevingModule(config)
+        self.label_generator = LabelGenerator(config)
 
-    
+
     def forward(self, s, img):
         f, out_edge, out_img1 = self.generator(s)
 
@@ -130,7 +131,7 @@ class ECGAN(nn.Module):
 
 
 
-        
+
 
 
 
