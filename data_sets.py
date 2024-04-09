@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 from PIL import Image
-import torch.transforms as transforms
+import torchvision.transforms as transforms
 
 
 class CityScapesDataSet(Dataset):
