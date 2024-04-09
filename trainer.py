@@ -2,7 +2,7 @@ from tqdm import tqdm
 import torch
 from loss import GANLossFactory
 from networks import ECGAN
-from data_sets import CityScapesDataSet, get_dataset_labels
+from data_sets import CityScapesDataSet
 from torch.utils.data import DataLoader
 from config import TrainingConfig
 from utils import RGB2n
@@ -27,7 +27,7 @@ class Trainer:
                                  shuffle=True, num_workers=0)
 
         self.losses = GANLossFactory(self.config)
-        self.labels = get_dataset_labels(self.config.dataset)  # TODO
+        self.labels = config.cityscapes_palette
         self.epoch = 0
 
         wandb.init(project=config.project_name)
@@ -38,7 +38,7 @@ class Trainer:
             img = img.to(self.device)
             img_seg = img_seg.to(self.device)
 
-            _, s = RGB2n(img_seg, self.labels)
+            s = RGB2n(img_seg, self.labels)
 
             loss_D = self.update_D(img, s)
             loss_G = self.update_G(img, img_seg, s)
@@ -48,7 +48,7 @@ class Trainer:
     @torch.no_grad()
     def log_images(self):
         img, img_seg = self.log_images
-        classes, s = RGB2n(img_seg, self.labels)
+        s = RGB2n(img_seg, self.labels)
 
         self.model.eval()
         f, out_edge, out_img1, out_img2, pred_labels = self.model(s, img)
@@ -81,7 +81,7 @@ class Trainer:
     def update_G(self, img, img_seg, s):
         self.optimizers['G'].zero_grad()
         f, out_edge, out_img1, out_img2, pred_labels = self.model(s, img)
-        _, s_fake = RGB2n(pred_labels, self.labels)
+        s_fake = RGB2n(pred_labels, self.labels)
         img_edge = self.model.canny(img)
 
         edge_real_logits = self.model.discriminator(img_edge, s).detach()

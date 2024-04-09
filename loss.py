@@ -95,8 +95,20 @@ class VGGPerceptualLoss(torch.nn.Module):
         return loss
 
 
-def similarity_loss():
-    pass  # TODO
+def similarity_loss(x, y):  # N x H x W
+    x1 = x.view(x[0], -1)  # N x M     M = HW
+    x_s = x1 @ x1.T  # M x M
+
+    y1 = y.view(y[0], -1)
+    y_s = y1 @ y1.T
+
+    m = x_s.shape[0]
+
+    return -1 / (m * m) * (y_s * x_s.log() + (1 - y_s) * (1 - x_s).log()).sum()
+
+
+def disc_feature_loss(x, y):
+    return F.l1_loss(x, y)
 
 
 class GANLossFactory:
@@ -110,7 +122,7 @@ class GANLossFactory:
             'L1': reconstructive_loss,
             'sim': similarity_loss,
             'perc': self.perc,
-            'discr_f': ...
+            'discr_f': disc_feature_loss,
         }
 
     def __getitem__(self, key):

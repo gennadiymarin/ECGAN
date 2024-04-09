@@ -1,7 +1,6 @@
-import torch
 from torch.utils.data import Dataset
 from PIL import Image
-import torchvision.transforms.functional as F
+import torch.transforms as transforms
 
 
 class CityScapesDataSet(Dataset):
@@ -9,19 +8,17 @@ class CityScapesDataSet(Dataset):
         self.path = src_data
         self.path += '/train/' if train else '/val/'
         self.length = 2975 if train else 500
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                             transforms.Normalize(0.5, 0.5)])
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, item: int):
-        img = F.pil_to_tensor(Image.open(self.path + str(item + 1) + '.jpg'))
-        return img[:, :, :256], img[:, :, 256:]
+        img = self.transform(Image.open(self.path + str(item + 1) +'.jpg'))
+        return img[:,:,:256], img[:,:,256:]
 
 
-def get_dataset_labels(name):
-    if name == 'cityscapes':
-        ...  # TODO
-    return classes, pallette
 
 # train_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data')
 # val_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data', train=False)
