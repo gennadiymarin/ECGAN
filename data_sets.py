@@ -21,6 +21,7 @@ class CityScapesDataSet(Dataset):
 def get_dataset_labels(name):
     if name == 'cityscapes':
         ...  # TODO
+    return classes, pallette
 
 # train_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data')
 # val_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data', train=False)

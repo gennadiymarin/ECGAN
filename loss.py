@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import torchvision.transforms.functional as F
 import torchvision
-from typing import List
-
 
 def pixel_contrastive_loss(img_seg, f, labels):
     '''
@@ -20,7 +18,7 @@ def pixel_contrastive_loss(img_seg, f, labels):
     f = torch.permute(f, (0, 2, 3, 1)).flatten(end_dim=-2)  # (-1 , C)
 
     for label in labels:
-        mask = torch.all(img_seg == torch.tensor(label), axis=-1)
+        mask = torch.all(img_seg == torch.tensor(label), dim=-1)
         if mask.sum() == 0:
             continue
 
@@ -30,12 +28,12 @@ def pixel_contrastive_loss(img_seg, f, labels):
             10000, len(f[~mask])), replace=False)
 
         pos_batch = f[mask][pos] / \
-                    (f[mask][pos] ** 2).sum(axis=1).sqrt().reshape(-1, 1)
+                    (f[mask][pos] ** 2).sum(dim=1).sqrt().reshape(-1, 1)
         neg_batch = f[~mask][neg] / \
-                    (f[~mask][neg] ** 2).sum(axis=1).sqrt().reshape(-1, 1)
+                    (f[~mask][neg] ** 2).sum(dim=1).sqrt().reshape(-1, 1)
 
         loss = torch.exp(pos_batch @ pos_batch.T)
-        sum_neg = torch.exp(pos_batch @ neg_batch.T).sum(axis=1)
+        sum_neg = torch.exp(pos_batch @ neg_batch.T).sum(dim=1)
         loss = -torch.log(loss / (loss + sum_neg)).sum() / \
                mask.sum() / pos_batch.size(0)
         total_loss += loss
@@ -99,15 +97,6 @@ class VGGPerceptualLoss(torch.nn.Module):
 
 def similarity_loss():
     pass  # TODO
-
-
-def feature_loss(features: List, x, y):
-    loss = 0.0
-    for f in features:
-        x = f(x)
-        y = f(y)
-        loss += torch.nn.functional.l1_loss(x, y)
-    return loss
 
 
 class GANLossFactory:

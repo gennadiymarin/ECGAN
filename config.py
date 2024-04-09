@@ -20,3 +20,8 @@ class TrainingConfig:
         'perc': 10,
         'discr_f': 10
     })
+    lr = 0.0001
+    beta1 = 0.
+    beta2 = 0.999
+
+    project_name = 'ECGAN'

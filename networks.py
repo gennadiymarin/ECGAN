@@ -96,13 +96,13 @@ class Generator(nn.Module):
         out_edge = f
         out_img = f
 
-        for conv_e, conv_i in zip(self.convs_edge,self.convs_img):
+        for conv_e, conv_i in zip(self.convs_edge, self.convs_img):
             out_edge = conv_e(out_edge)
             out_img = conv_i(out_img)
             out_img += self.sigmoid(out_edge) * out_img
 
         out_edge = self.edge_final(out_edge)
-        out_edge = self.canny(out_edge) #TODO
+        out_edge = self.canny(out_edge)  # TODO
 
         out_img = self.img_final(out_img)
         out_img += self.sigmoid(out_edge) * out_img
@@ -122,19 +122,8 @@ class ECGAN(nn.Module):
     def forward(self, s, img):
         f, out_edge, out_img1 = self.generator(s)
 
-        out_img2 = self.semantic_preserving_module(torch.cat([s, f, out_edge, out_img1],dim=1))
+        out_img2 = self.semantic_preserving_module(torch.cat([s, f, out_edge, out_img1], dim=1))
 
         labels = self.label_generator(out_img2)
 
         return f, out_edge, out_img1, out_img2, labels
-
-
-
-
-
-
-
-
-
-
-
