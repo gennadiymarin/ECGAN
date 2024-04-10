@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
+
 def pixel_contrastive_loss(img_seg, f, labels):
     '''
     :param img_seg: (B, 3, H, W)
@@ -19,14 +20,14 @@ def pixel_contrastive_loss(img_seg, f, labels):
     f = torch.permute(f, (0, 2, 3, 1)).flatten(end_dim=-2)  # (-1 , C)
 
     for label in labels:
-        mask = torch.all(img_seg == torch.tensor(label), dim=-1)
+        mask = torch.all(img_seg == label, dim=-1)
         if mask.sum() == 0:
             continue
 
         pos = np.random.choice(len(f[mask]), min(
-            10000, len(f[mask])), replace=False)
+            1000, len(f[mask])), replace=False)
         neg = np.random.choice(len(f[~mask]), min(
-            10000, len(f[~mask])), replace=False)
+            1000, len(f[~mask])), replace=False)
 
         pos_batch = f[mask][pos] / \
                     (f[mask][pos] ** 2).sum(dim=1).sqrt().reshape(-1, 1)
@@ -96,16 +97,14 @@ class VGGPerceptualLoss(torch.nn.Module):
         return loss
 
 
-def similarity_loss(x, y):  # N x H x W
-    x1 = x.reshape(x.shape[0], -1)  # N x M     M = HW
-    x_s = x1 @ x1.T  # M x M
+def similarity_loss(x, y):  # B x N x H x W
+    x1 = x.reshape(x.shape[0], x.shape[1], -1)  # B x N x M     M = HW
+    x_s = x1 @ x1.permute(0, 2, 1)  # B x M x M
 
-    y1 = y.reshape(y.shape[0], -1)
-    y_s = y1 @ y1.T
+    y1 = y.reshape(y.shape[0], y.shape[1], -1)
+    y_s = y1 @ y1.permute(0, 2, 1)
 
-    m = x_s.shape[0]
-
-    return -1 / (m * m) * (y_s * x_s.log() + (1 - y_s) * (1 - x_s).log()).sum()
+    return F.binary_cross_entropy(x_s, y_s)
 
 
 def disc_feature_loss(x, y):

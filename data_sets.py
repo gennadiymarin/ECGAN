@@ -38,7 +38,7 @@ class CityScapesDataSet(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, item: int):
-        img, seg = self.dataset
+        img, seg = self.dataset[item]
         return img, seg[:3]
 
 # train_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data')

@@ -201,7 +201,7 @@ class LabelGenerator(nn.Module):
 
         target_sizes = [imgs.shape[2:] for _ in range(imgs.shape[0])]
         resized_logits = self.get_resized_logits(logits, target_sizes)
-        return resized_logits  # RGB non-normalized
+        return torch.nn.functional.softmax(resized_logits, dim=1)  # RGB non-normalized
 
 
 class ECGAN(nn.Module):

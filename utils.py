@@ -16,7 +16,7 @@ def RGB2n(img_seg, labels):
     """
     x = img_seg.permute(0, 2, 3, 1)  # BxHxWx3
     res = (x.unsqueeze(-2).repeat(1, 1, 1, labels.size(0), 1) == labels)  # BxHxWx19x3
-    return torch.all(res, dim=-1).permute(0, 3, 2, 1).float()
+    return torch.all(res, dim=-1).permute(0, 3, 1, 2).float()
 
 
 class Canny(nn.Module):
