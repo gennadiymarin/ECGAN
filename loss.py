@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-import torchvision.transforms.functional as F
+# import torchvision.transforms.functional as F
+import torch.nn.functional as F
 import torchvision
 
 def pixel_contrastive_loss(img_seg, f, labels):
@@ -96,10 +97,10 @@ class VGGPerceptualLoss(torch.nn.Module):
 
 
 def similarity_loss(x, y):  # N x H x W
-    x1 = x.view(x[0], -1)  # N x M     M = HW
+    x1 = x.reshape(x.shape[0], -1)  # N x M     M = HW
     x_s = x1 @ x1.T  # M x M
 
-    y1 = y.view(y[0], -1)
+    y1 = y.reshape(y.shape[0], -1)
     y_s = y1 @ y1.T
 
     m = x_s.shape[0]

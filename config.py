@@ -8,10 +8,10 @@ class TrainingConfig:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     n_epochs: int = 50
-    batch_size: int = 64
+    batch_size: int = 16
     dataset: str = 'cityscapes'
     data_path: str = '.'  # TODO
-    semantic_classes: int = 35
+    semantic_classes: int = 19
     c_hidden: int = 64
 
     loss_coefs: Dict = field(default_factory=lambda: {

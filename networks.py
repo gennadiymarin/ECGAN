@@ -22,7 +22,6 @@ class ResBlock(nn.Module):
             nn.Conv2d(channels_in, channels_out, 1)
         )
 
-
     def forward(self, x):
         x_in = x
         x = self.relu(self.bn1(self.conv1(x)))
@@ -58,7 +57,7 @@ class ConvBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, channels_in, c_hidden, channels_out, n):
+    def __init__(self, channels_in, c_hidden, channels_out, n=3):
         super().__init__()
         self.n = n
 
@@ -170,7 +169,7 @@ class Discriminator(nn.Module):
 
     def forward(self, x, y):  # B x C x H x W
         x1 = torch.concat(x, y, dim=1)  # B x C + N x H x W
-        x1 = self.layers(x1).view(x1.shape[0], -1)
+        x1 = self.layers(x1).reshape(x1.shape[0], -1)
         x1 = self.fc(x1)
         return x1
 
@@ -185,46 +184,40 @@ class LabelGenerator(nn.Module):
         self.palette = CFG.cityscapes_palette
         self.model.to(self.device)
 
+    def get_resized_logits(self, logits, target_sizes):
+        resized_logits = []
+        for idx in range(len(logits)):
+            resized_logits.append(torch.nn.functional.interpolate(
+                logits[idx].unsqueeze(dim=0), size=target_sizes[idx], mode="bilinear", align_corners=False
+            ))
+        return torch.cat(resized_logits)
+
     def forward(self, imgs):
         pixel_values = self.processor(toRGB(imgs), return_tensors="pt").pixel_values.to(self.device)
 
         with torch.no_grad():
             outputs = self.model(pixel_values)
+            logits = outputs.logits
 
-        predicted_segmentation_maps = self.processor.post_process_semantic_segmentation(outputs,
-                                                                                        target_sizes=[imgs.shape[2:] for
-                                                                                                      _ in range(
-                                                                                                imgs.shape[0])])
-        predicted_segmentation_maps = torch.stack(predicted_segmentation_maps, dim=0).numpy()  # B x H x W
-
-        color_segs = np.zeros((predicted_segmentation_maps.shape[0],
-                               predicted_segmentation_maps.shape[1],
-                               predicted_segmentation_maps.shape[2], 3), dtype=np.uint8)  # B x H x W x 3
-
-        palette = np.array(self.palette)
-        for label, color in enumerate(palette):
-            color_segs[predicted_segmentation_maps == label, :] = color
-
-        color_segs = torch.tensor(color_segs).permute(0, 3, 1, 2)  # B x 3 x H x W
-
-        return color_segs  # RGB non-normalized
-
+        target_sizes = [imgs.shape[2:] for _ in range(imgs.shape[0])]
+        resized_logits = self.get_resized_logits(logits, target_sizes)
+        return resized_logits  # RGB non-normalized
 
 
 class ECGAN(nn.Module):
     def __init__(self, config, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.generator = Generator(config.semantic_classes, config.c_hidden, 3)
-        self.discriminator = Discriminator(config.semantic_classes)
+        self.discriminator = Discriminator(config)
         self.semantic_preserving_module = SemanticPreserveModule(config)
         self.label_generator = LabelGenerator(config)
+        self.canny = Canny()
 
-
-    def forward(self, s, img):
+    def forward(self, s):
         f, out_edge, out_img1 = self.generator(s)
 
         out_img2 = self.semantic_preserving_module(torch.cat([s, f, out_edge, out_img1], dim=1))
 
-        labels = self.label_generator(out_img2)
+        label_logits = self.label_generator(out_img2)
 
-        return f, out_edge, out_img1, out_img2, labels
+        return f, out_edge, out_img1, out_img2, label_logits
