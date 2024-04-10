@@ -22,7 +22,7 @@ class Trainer:
                                   betas=(self.config.beta1, self.config.beta2)),
         }
 
-        dataset = CityScapesDataSet(self.config.data_path, train=True)
+        dataset = CityScapesDataSet(self.config.data_path, train=True, img_size=(self.config.H, self.config.W))
         self.loader = DataLoader(dataset, batch_size=self.config.batch_size,
                                  shuffle=True, num_workers=0)
 
@@ -48,8 +48,6 @@ class Trainer:
             total_loss_D += loss_D
             total_loss_G = loss_G
 
-            break
-
         self.wandb_log_img()
         #         self.wandb_log_losses(total_loss_D/len(self.loader), total_loss_G/len(self.loader))
 
@@ -63,9 +61,9 @@ class Trainer:
         self.model.eval()
         f, out_edge, out_img1, out_img2, _ = self.model(s)
 
-        res = torch.cat([toRGB(imgs.to(self.device)),
-                         toRGB(segs.to(self.device)),
-                         toRGB(out_img2), toRGB(out_img1), toRGB(out_edge)], dim=-2)
+        res = torch.cat([toRGB(imgs).cpu(),
+                         segs.cpu(),
+                         toRGB(out_img2).cpu(), toRGB(out_img1).cpu(), toRGB(out_edge).cpu()], dim=-2)
 
         res = [wandb.Image(to_pil_image(res[i])) for i in range(4)]
 
@@ -109,7 +107,7 @@ class Trainer:
 
         loss_dict = {
             'mma_G': self.losses['mma_G'](edge_fake_logits, img_fake1_logits, img_fake2_logits),
-            'pix_contr': self.losses['pix_contr'](toRGB(img_seg), f, self.labels),
+            'pix_contr': self.losses['pix_contr'](img_seg, f, self.labels),
             'L1': self.losses['L1'](img, out_img1),
             'sim': self.losses['sim'](label_logits, s),
             'perc_edge': self.losses['perc'](img_edge.float(), out_edge.float()),
@@ -131,3 +129,9 @@ class Trainer:
     def train(self):
         for self.epoch in range(1, self.config.n_epochs + 1):
             self.train_epoch()
+            if self.epoch % 5 == 0:
+                torch.save({
+                    'model': self.model.state_dict(),
+                    'optimizerG': self.optimizers['G'].state_dict(),
+                    'optimizerD': self.optimizers['D'].state_dict()
+                }, self.config.ckpt_path + f'/{self.config.dataset}_{self.epoch}ep.pt')

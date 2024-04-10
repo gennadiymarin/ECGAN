@@ -21,17 +21,20 @@ from torchvision.transforms import InterpolationMode
 #         return img[:,:,:256], img[:,:,256:]
 
 class CityScapesDataSet(Dataset):
-    def __init__(self, src_data: str, train=True):
+    def __init__(self, src_data: str, train=True, img_size=(128, 256)):
         split = 'train' if train else 'val'
         self.dataset = Cityscapes(src_data, split=split, mode='fine',
                                   target_type='color',
                                   transform=transforms.Compose([transforms.ToTensor(),
-                                                                transforms.Resize(256,
+                                                                transforms.Resize(img_size[0],
                                                                                   interpolation=InterpolationMode.NEAREST),
+                                                                transforms.CenterCrop(img_size),
                                                                 transforms.Normalize(0.5, 0.5)]),
                                   target_transform=transforms.Compose([transforms.PILToTensor(),
-                                                                       transforms.Resize(256,
-                                                                                         interpolation=InterpolationMode.NEAREST)])
+                                                                       transforms.Resize(img_size[0],
+                                                                                         interpolation=InterpolationMode.NEAREST),
+                                                                       transforms.CenterCrop(img_size),
+                                                                       ])
                                   )
 
     def __len__(self):

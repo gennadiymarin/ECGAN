@@ -91,6 +91,7 @@ class VGGPerceptualLoss(torch.nn.Module):
         x = input
         y = target
         for i, block in enumerate(self.blocks):
+            # print(x.shape, y.shape)
             x = block(x)
             y = block(y)
             loss += torch.nn.functional.l1_loss(x, y)
@@ -104,7 +105,7 @@ def similarity_loss(x, y):  # B x N x H x W
     y1 = y.reshape(y.shape[0], y.shape[1], -1)
     y_s = y1 @ y1.permute(0, 2, 1)
 
-    return F.binary_cross_entropy(x_s, y_s)
+    return F.binary_cross_entropy_with_logits(x_s, y_s)
 
 
 def disc_feature_loss(x, y):
@@ -113,7 +114,7 @@ def disc_feature_loss(x, y):
 
 class GANLossFactory:
     def __init__(self, config):
-        self.perc = VGGPerceptualLoss()
+        self.perc = VGGPerceptualLoss().to(config.device)
         self._coefs = config.loss_coefs
         self._losses = {
             'mma_G': generator_mma_loss,

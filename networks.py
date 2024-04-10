@@ -100,13 +100,13 @@ class Generator(nn.Module):
         for conv_e, conv_i in zip(self.convs_edge, self.convs_img):
             out_edge = conv_e(out_edge)
             out_img = conv_i(out_img)
-            out_img += self.sigmoid(out_edge) * out_img
+            out_img = out_img + self.sigmoid(out_edge) * out_img
 
         out_edge = self.edge_final(out_edge)
         out_edge = self.canny(out_edge)  # TODO
 
         out_img = self.img_final(out_img)
-        out_img += self.sigmoid(out_edge) * out_img
+        out_img = out_img + self.sigmoid(out_edge) * out_img
 
         return f, out_edge, out_img
 
@@ -147,8 +147,8 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.layers = nn.Sequential(
-            nn.AvgPool2d(kernel_size=3, stride=2),  # 256 -> 128
-            self._downsample_block(CFG.c_hidden + CFG.semantic_classes, 64),  # 128 -> 64
+            nn.AvgPool2d(kernel_size=2, stride=2),  # 256 -> 128
+            self._downsample_block(3 + CFG.semantic_classes, 64),  # 128 -> 64
             self._downsample_block(64, 128),  # 64 -> 32
             self._downsample_block(128, 256),  # 32 -> 16
             self._downsample_block(256, 512),  # 16 -> 8
@@ -156,7 +156,7 @@ class Discriminator(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            spectral_norm(nn.Linear(64 * 8 * 8, 128)),
+            spectral_norm(nn.Linear(64 * CFG.H//32 * CFG.W//32, 128)),
             nn.BatchNorm1d(128),
             nn.LeakyReLU(0.2),
             nn.Linear(128, 1))
@@ -168,7 +168,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True))
 
     def forward(self, x, y):  # B x C x H x W
-        x1 = torch.concat(x, y, dim=1)  # B x C + N x H x W
+        x1 = torch.concat([x, y], dim=1)  # B x C + N x H x W
         x1 = self.layers(x1).reshape(x1.shape[0], -1)
         x1 = self.fc(x1)
         return x1
@@ -201,7 +201,7 @@ class LabelGenerator(nn.Module):
 
         target_sizes = [imgs.shape[2:] for _ in range(imgs.shape[0])]
         resized_logits = self.get_resized_logits(logits, target_sizes)
-        return torch.nn.functional.softmax(resized_logits, dim=1)  # RGB non-normalized
+        return resized_logits  # RGB non-normalized
 
 
 class ECGAN(nn.Module):

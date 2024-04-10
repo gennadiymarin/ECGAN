@@ -6,13 +6,17 @@ import torch
 @dataclass
 class TrainingConfig:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    # device='cpu'
     n_epochs: int = 50
-    batch_size: int = 16
+    batch_size: int = 32
     dataset: str = 'cityscapes'
-    data_path: str = '.'  # TODO
+    data_path: str = '.'
     semantic_classes: int = 19
     c_hidden: int = 64
+    ckpt_path = 'checkpoints'
+
+    H=128
+    W=256
 
     loss_coefs: Dict = field(default_factory=lambda: {
         'mma_G': 1,
