@@ -63,9 +63,6 @@ class ADE20kDataset(Dataset):
         img_name = 'ADE_{}_{:08d}'.format(self.split, item)
         img = self.transform(Image.open(f'{self.img_dir}/{img_name}.jpg'))
 
-        seg = np.array(Image.open(f'{self.ann_dir}/{img_name}.png'))
-        seg = torch.tensor(list(map(lambda x: self.palette[x - 1], seg.flatten())), dtype=torch.uint8).reshape(
-            *seg.shape, 3)
-        seg = seg.permute(2, 0, 1)
-        seg = self.seg_transform(seg)
+        seg = self.seg_transform(Image.open(f'{self.ann_dir}/{img_name}.png'))
+        seg = seg.repeat(3, 1, 1)
         return img, seg
