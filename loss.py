@@ -50,7 +50,7 @@ def reconstructive_loss(img_true, img_pred):
     :return:
     '''
 
-    return abs(img_true - img_pred).sum()
+    return F.l1_loss(img_true, img_pred)
 
 
 def generator_mma_loss(edge_fake_logits, img_fake1_logits, img_fake2_logits, lmbd=2):
