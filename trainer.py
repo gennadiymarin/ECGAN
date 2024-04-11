@@ -32,7 +32,10 @@ class Trainer:
         self.labels = torch.tensor(get_palette(config.dataset), device=self.device)
         self.epoch = 0
 
-        self.log_batch = next(iter(self.loader))
+        val_data = get_dataset(self.config.dataset, self.config.data_path, train=False,
+                               img_size=(self.config.H, self.config.W))
+        self.log_batch = next(iter(DataLoader(val_data, batch_size=self.config.batch_size,
+                                              shuffle=False, num_workers=0)))
 
         wandb.init(project=config.project_name)
 

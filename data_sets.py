@@ -63,7 +63,8 @@ class ADE20kDataset(Dataset):
     def __getitem__(self, item: int):
         img_name = 'ADE_{}_{:08d}'.format(self.split, item+1)
         img = self.transform(Image.open(f'{self.img_dir}/{img_name}.jpg'))
-
+        if img.shape[0] < 3:
+            img = img.repeat(3, 1, 1)
         seg = self.seg_transform(Image.open(f'{self.ann_dir}/{img_name}.png'))
         seg = seg.repeat(3, 1, 1)
         return img, seg
