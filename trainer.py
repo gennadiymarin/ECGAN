@@ -118,7 +118,7 @@ class Trainer:
             'mma_G': self.losses['mma_G'](edge_fake_logits, img_fake1_logits, img_fake2_logits),
             'pix_contr': self.losses['pix_contr'](img_seg, f, self.labels),
             'L1_img1': self.losses['L1'](img, out_img1),
-            'L1_img2': self.losses['L1'](img, out_img2),
+            # 'L1_img2': self.losses['L1'](img, out_img2),
             'sim': self.losses['sim'](label_logits, s),
             'perc_edge': self.losses['perc'](img_edge.float(), out_edge.float()),
             'perc_img1': self.losses['perc'](img, out_img1),
