@@ -39,7 +39,7 @@ class Trainer:
     def train_epoch(self):
         self.model.train()
         total_loss_D, total_loss_G = 0, 0
-        for img, img_seg in tqdm(self.loader, desc='Training'):
+        for iter, (img, img_seg) in enumerate(tqdm(self.loader, desc='Training')):
             img = img.to(self.device)
             img_seg = img_seg.to(self.device)
             s = RGB2n(img_seg, self.labels)
@@ -49,6 +49,10 @@ class Trainer:
 
             total_loss_D += loss_D
             total_loss_G = loss_G
+
+            if iter % 100 == 0:
+                self.wandb_log_img()
+                self.wandb_log_losses(total_loss_D, total_loss_G)
 
         self.wandb_log_img()
         #         self.wandb_log_losses(total_loss_D/len(self.loader), total_loss_G/len(self.loader))

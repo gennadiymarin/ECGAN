@@ -52,6 +52,7 @@ class ADE20kDataset(Dataset):
                                              transforms.Resize(img_size),
                                              transforms.Normalize(0.5, 0.5)])
         self.seg_transform = transforms.Compose([
+            transforms.PILToTensor(),
             transforms.Resize(img_size, interpolation=InterpolationMode.NEAREST),
         ])
         self.palette = get_palette('ade20k')
