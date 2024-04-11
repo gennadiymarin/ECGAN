@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torch import nn
 from torch.nn.utils import spectral_norm
-from utils import Canny, toRGB
+from utils import Canny, toRGB, get_palette
 from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
 
 
@@ -156,7 +156,7 @@ class Discriminator(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            spectral_norm(nn.Linear(64 * CFG.H//32 * CFG.W//32, 128)),
+            spectral_norm(nn.Linear(64 * CFG.H // 32 * CFG.W // 32, 128)),
             nn.BatchNorm1d(128),
             nn.LeakyReLU(0.2),
             nn.Linear(128, 1))
@@ -181,7 +181,7 @@ class LabelGenerator(nn.Module):
         self.processor = SegformerImageProcessor(do_resize=False)
         self.model = SegformerForSemanticSegmentation.from_pretrained(CFG.LG_model_name)
         self.device = CFG.device
-        self.palette = CFG.cityscapes_palette
+        self.palette = get_palette(CFG.dataset)
         self.model.to(self.device)
 
     def get_resized_logits(self, logits, target_sizes):

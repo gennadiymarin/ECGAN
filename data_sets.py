@@ -3,22 +3,18 @@ from PIL import Image
 import torchvision.transforms as transforms
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import InterpolationMode
+from utils import get_palette
+import torch
+import numpy as np
 
 
-# class CityScapesDataSet(Dataset):
-#     def __init__(self, src_data: str, train=True):
-#         self.path = src_data
-#         self.path += '/train/' if train else '/val/'
-#         self.length = 2975 if train else 500
-#         self.transform = transforms.Compose([transforms.ToTensor(),
-#                                              transforms.Normalize(0.5, 0.5)])
-#
-#     def __len__(self):
-#         return self.length
-#
-#     def __getitem__(self, item: int):
-#         img = self.transform(Image.open(self.path + str(item + 1) +'.jpg'))
-#         return img[:,:,:256], img[:,:,256:]
+def get_dataset(name, src_data, train=True, img_size=(128, 256)):
+    if name == 'cityscapes':
+        return CityScapesDataSet(src_data, train, img_size)
+    if name == 'ade20k':
+        return ADE20kDataset(src_data, train, img_size)
+    raise ValueError
+
 
 class CityScapesDataSet(Dataset):
     def __init__(self, src_data: str, train=True, img_size=(128, 256)):
@@ -44,8 +40,32 @@ class CityScapesDataSet(Dataset):
         img, seg = self.dataset[item]
         return img, seg[:3]
 
-# train_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data')
-# val_set = CityScapesDataSet('/kaggle/input/cityscapes-image-pairs/cityscapes_data', train=False)
-#
-# train_loader = DataLoader(train_set, batch_size=CFG.batch_size, shuffle=True)
-# val_loader = DataLoader(val_set, batch_size=CFG.batch_size, shuffle=False)
+
+class ADE20kDataset(Dataset):
+    def __init__(self, src_data: str, train=True, img_size=(256, 256)):
+        self.split = 'train' if train else 'val'
+        self.img_dir = f'{src_data}/ADEChallengeData2016/images/' + ('training' if train else 'validation')
+        self.ann_dir = f'{src_data}/ADEChallengeData2016/annotations/' + ('training' if train else 'validation')
+        self.length = 20210 if train else 2000
+        self.img_size = img_size
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                             transforms.Resize(img_size),
+                                             transforms.Normalize(0.5, 0.5)])
+        self.seg_transform = transforms.Compose([
+            transforms.Resize(img_size, interpolation=InterpolationMode.NEAREST),
+        ])
+        self.palette = get_palette('ade20k')
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, item: int):
+        img_name = 'ADE_{}_{:08d}'.format(self.split, item)
+        img = self.transform(Image.open(f'{self.img_dir}/{img_name}.jpg'))
+
+        seg = np.array(Image.open(f'{self.ann_dir}/{img_name}.png'))
+        seg = torch.tensor(list(map(lambda x: self.palette[x - 1], seg.flatten())), dtype=torch.uint8).reshape(
+            *seg.shape, 3)
+        seg = seg.permute(2, 0, 1)
+        seg = self.seg_transform(seg)
+        return img, seg

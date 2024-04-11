@@ -2,10 +2,10 @@ from tqdm import tqdm
 import torch
 from loss import GANLossFactory
 from networks import ECGAN
-from data_sets import CityScapesDataSet
+from data_sets import get_dataset
 from torch.utils.data import DataLoader
 from torchvision.transforms.functional import pil_to_tensor, to_pil_image
-from utils import RGB2n, toRGB
+from utils import RGB2n, toRGB, get_palette
 import wandb
 
 
@@ -22,12 +22,14 @@ class Trainer:
                                   betas=(self.config.beta1, self.config.beta2)),
         }
 
-        dataset = CityScapesDataSet(self.config.data_path, train=True, img_size=(self.config.H, self.config.W))
+        dataset = get_dataset(self.config.dataset, self.config.data_path, train=True,
+                              img_size=(self.config.H, self.config.W))
+
         self.loader = DataLoader(dataset, batch_size=self.config.batch_size,
                                  shuffle=True, num_workers=0)
 
         self.losses = GANLossFactory(self.config)
-        self.labels = torch.tensor(config.cityscapes_palette, device=self.device)
+        self.labels = torch.tensor(get_palette(config.dataset), device=self.device)
         self.epoch = 0
 
         self.log_batch = next(iter(self.loader))

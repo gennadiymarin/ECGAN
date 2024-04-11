@@ -15,8 +15,8 @@ class TrainingConfig:
     c_hidden: int = 64
     ckpt_path = 'checkpoints'
 
-    H=128
-    W=256
+    H = 128
+    W = 256
 
     loss_coefs: Dict = field(default_factory=lambda: {
         'mma_G': 1,
@@ -38,47 +38,3 @@ class TrainingConfig:
     padding = 1
 
     LG_model_name = "nvidia/segformer-b0-finetuned-cityscapes-768-768"
-
-    cityscapes_classes = [
-        "road",
-        "sidewalk",
-        "building",
-        "wall",
-        "fence",
-        "pole",
-        "traffic light",
-        "traffic sign",
-        "vegetation",
-        "terrain",
-        "sky",
-        "person",
-        "rider",
-        "car",
-        "truck",
-        "bus",
-        "train",
-        "motorcycle",
-        "bicycle",
-    ]
-
-    cityscapes_palette = [
-        [128, 64, 128],
-        [244, 35, 232],
-        [70, 70, 70],
-        [102, 102, 156],
-        [190, 153, 153],
-        [153, 153, 153],
-        [250, 170, 30],
-        [220, 220, 0],
-        [107, 142, 35],
-        [152, 251, 152],
-        [70, 130, 180],
-        [220, 20, 60],
-        [255, 0, 0],
-        [0, 0, 142],
-        [0, 0, 70],
-        [0, 60, 100],
-        [0, 80, 100],
-        [0, 0, 230],
-        [119, 11, 32],
-    ]
