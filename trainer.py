@@ -53,7 +53,7 @@ class Trainer:
             total_loss_D += loss_D
             total_loss_G = loss_G
 
-            if iter % 100 == 0:
+            if iter % 50 == 0:
                 self.wandb_log_img()
                 self.wandb_log_losses(total_loss_D, total_loss_G)
 
@@ -117,7 +117,8 @@ class Trainer:
         loss_dict = {
             'mma_G': self.losses['mma_G'](edge_fake_logits, img_fake1_logits, img_fake2_logits),
             'pix_contr': self.losses['pix_contr'](img_seg, f, self.labels),
-            'L1': self.losses['L1'](img, out_img1),
+            'L1_img1': self.losses['L1'](img, out_img1),
+            'L1_img2': self.losses['L1'](img, out_img2),
             'sim': self.losses['sim'](label_logits, s),
             'perc_edge': self.losses['perc'](img_edge.float(), out_edge.float()),
             'perc_img1': self.losses['perc'](img, out_img1),
