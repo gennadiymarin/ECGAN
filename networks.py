@@ -86,7 +86,7 @@ class Generator(nn.Module):
 
         self.sigmoid = nn.Sigmoid()
 
-        # self.canny = Canny()
+        self.canny = Canny()
 
     def forward(self, x):
 
@@ -105,10 +105,11 @@ class Generator(nn.Module):
             out_img = out_img + self.sigmoid(out_edge) * out_img
 
         out_edge = self.edge_final(out_edge)
-        # out_edge = self.canny(out_edge)
+        out_edge = self.canny(out_edge)
 
         out_img = self.img_final(out_img)
         out_img = out_img + self.sigmoid(out_edge) * out_img
+
         out_img = torch.tanh(out_img)
 
         return f, out_edge, out_img

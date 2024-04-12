@@ -57,6 +57,8 @@ class Trainer:
                 self.wandb_log_img()
                 self.wandb_log_losses(total_loss_D, total_loss_G)
 
+            self.model.train()
+
         self.wandb_log_img()
         #         self.wandb_log_losses(total_loss_D/len(self.loader), total_loss_G/len(self.loader))
 
