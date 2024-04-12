@@ -15,8 +15,8 @@ class TrainingConfig:
     c_hidden: int = 64
     ckpt_path = 'checkpoints'
 
-    H = 128
-    W = 256
+    H: int = 128
+    W: int = 256
 
     loss_coefs: Dict = field(default_factory=lambda: {
         'mma_G': 1,
@@ -37,4 +37,4 @@ class TrainingConfig:
     kernel_size = 3
     padding = 1
 
-    LG_model_name = "nvidia/segformer-b0-finetuned-cityscapes-768-768"
+    LG_model_name: str = "nvidia/segformer-b0-finetuned-cityscapes-768-768"
