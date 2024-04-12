@@ -108,8 +108,11 @@ def similarity_loss(x, y):  # B x N x H x W
     return F.binary_cross_entropy_with_logits(x_s, y_s)
 
 
-def disc_feature_loss(x, y):
-    return F.l1_loss(x, y)
+def disc_feature_loss(real, fake):
+    loss = 0.
+    for f1, f2 in zip(real, fake):
+        loss += F.l1_loss(f1.detach(), f2)
+    return loss
 
 
 class GANLossFactory:

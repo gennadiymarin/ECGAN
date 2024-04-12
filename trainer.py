@@ -88,11 +88,11 @@ class Trainer:
         img_edge = self.model.canny(img)
         f, out_edge, out_img1, out_img2, _ = self.model(s)
 
-        edge_real_logits = self.model.discriminator(img_edge, s)
-        edge_fake_logits = self.model.discriminator(out_edge, s)
-        img_real_logits = self.model.discriminator(img, s)
-        img_fake1_logits = self.model.discriminator(out_img1, s)
-        img_fake2_logits = self.model.discriminator(out_img2, s)
+        edge_real_logits, _ = self.model.discriminator(img_edge, s)
+        edge_fake_logits, _ = self.model.discriminator(out_edge, s)
+        img_real_logits, _ = self.model.discriminator(img, s)
+        img_fake1_logits, _ = self.model.discriminator(out_img1, s)
+        img_fake2_logits, _ = self.model.discriminator(out_img2, s)
 
         loss = self.losses['mma_D'](edge_real_logits, img_real_logits, edge_fake_logits, img_fake1_logits,
                                     img_fake2_logits)
@@ -108,11 +108,11 @@ class Trainer:
         # s_fake = RGB2n(pred_labels, self.labels)
         img_edge = self.model.canny(img)
 
-        edge_real_logits = self.model.discriminator(img_edge, s).detach()
-        edge_fake_logits = self.model.discriminator(out_edge, s)
-        img_real_logits = self.model.discriminator(img, s).detach()
-        img_fake1_logits = self.model.discriminator(out_img1, s)
-        img_fake2_logits = self.model.discriminator(out_img2, s)
+        edge_real_logits, edge_real_inter = self.model.discriminator(img_edge, s)
+        edge_fake_logits, edge_fake_inter = self.model.discriminator(out_edge, s)
+        img_real_logits, img_real_inter = self.model.discriminator(img, s)
+        img_fake1_logits, img_fake1_inter = self.model.discriminator(out_img1, s)
+        img_fake2_logits, img_fake2_inter = self.model.discriminator(out_img2, s)
 
         loss_dict = {
             'mma_G': self.losses['mma_G'](edge_fake_logits, img_fake1_logits, img_fake2_logits),
@@ -123,9 +123,9 @@ class Trainer:
             'perc_edge': self.losses['perc'](img_edge.float(), out_edge.float()),
             'perc_img1': self.losses['perc'](img, out_img1),
             'perc_img2': self.losses['perc'](img, out_img2),
-            'discr_f_edge': self.losses['discr_f'](edge_real_logits, edge_fake_logits),
-            'discr_f_img1': self.losses['discr_f'](img_real_logits, img_fake1_logits),
-            'discr_f_img2': self.losses['discr_f'](img_real_logits, img_fake2_logits)
+            'discr_f_edge': self.losses['discr_f'](edge_real_inter, edge_fake_inter),
+            'discr_f_img1': self.losses['discr_f'](img_real_inter, img_fake1_inter),
+            'discr_f_img2': self.losses['discr_f'](img_real_inter, img_fake2_inter)
         }
 
         loss = sum(loss_dict.values())

@@ -90,8 +90,6 @@ class Generator(nn.Module):
 
     def forward(self, x):
 
-        x_in = x
-
         f = self.encoder(x)
 
         out_edge = f
@@ -100,6 +98,10 @@ class Generator(nn.Module):
         for conv_e, conv_i in zip(self.convs_edge, self.convs_img):
             out_edge = conv_e(out_edge)
             out_img = conv_i(out_img)
+
+            out_edge = torch.nn.functional.relu(out_edge)
+            out_img = torch.nn.functional.relu(out_img)
+
             out_img = out_img + self.sigmoid(out_edge) * out_img
 
         out_edge = self.edge_final(out_edge)
@@ -147,20 +149,20 @@ class Discriminator(nn.Module):
     def __init__(self, CFG):
         super(Discriminator, self).__init__()
 
-        self.layers = nn.Sequential(
-            nn.AvgPool2d(kernel_size=2, stride=2),  # 256 -> 128
+        self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)  # 256 -> 128
+        self.layers = nn.ModuleList([
             self._downsample_block(3 + CFG.semantic_classes, 64),  # 128 -> 64
             self._downsample_block(64, 128),  # 64 -> 32
             self._downsample_block(128, 256),  # 32 -> 16
             self._downsample_block(256, 512),  # 16 -> 8
-            nn.Conv2d(512, 64, kernel_size=1)
+        ]
         )
-
-        self.fc = nn.Sequential(
+        self.conv = nn.Conv2d(512, 64, kernel_size=1)
+        self.fc1 = nn.Sequential(
             spectral_norm(nn.Linear(64 * CFG.H // 32 * CFG.W // 32, 128)),
             nn.BatchNorm1d(128),
-            nn.LeakyReLU(0.2),
-            nn.Linear(128, 1))
+            nn.LeakyReLU(0.2))
+        self.fc2 = nn.Linear(128, 1)
 
     def _downsample_block(self, input_channels, output_channels):
         return nn.Sequential(
@@ -169,10 +171,16 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True))
 
     def forward(self, x, y):  # B x C x H x W
+        intermediate_features = []
         x1 = torch.concat([x, y], dim=1)  # B x C + N x H x W
-        x1 = self.layers(x1).reshape(x1.shape[0], -1)
-        x1 = self.fc(x1)
-        return x1
+        x1 = self.avg_pool(x1)
+        for block in self.layers:
+            x1 = block(x1)
+        x1 = self.conv(x1).reshape(x1.shape[0], -1)
+        x1 = self.fc1(x1)
+        intermediate_features.append(x1)
+        x1 = self.fc2(x1)
+        return x1, intermediate_features
 
 
 class LabelGenerator(nn.Module):

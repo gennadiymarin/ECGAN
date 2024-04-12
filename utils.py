@@ -20,7 +20,7 @@ def RGB2n(img_seg, labels):
 
 
 class Canny(nn.Module):
-    def __init__(self, t_low=0, t_high=10):
+    def __init__(self, t_low=50, t_high=200):
         super().__init__()
         self.t_low = t_low
         self.t_high = t_high
